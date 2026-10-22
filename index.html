@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>水費異常處理工具</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1c2330;--mut:#667085;--bd:#d5dae2;--ac:#2557d6;--acfg:#fff;--hd:#eef1f6;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171d;--card:#1d222b;--fg:#e7eaf0;--mut:#98a2b3;--bd:#343b48;--ac:#6b93ff;--acfg:#0d1220;--hd:#262c37}}
+:root[data-theme="dark"]{--bg:#14171d;--card:#1d222b;--fg:#e7eaf0;--mut:#98a2b3;--bd:#343b48;--ac:#6b93ff;--acfg:#0d1220;--hd:#262c37}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 "Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif}
+main{max-width:1600px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:20px;margin:0 0 12px}p.s{color:var(--mut);margin:0 0 12px;font-size:13px}
+.tabs{display:flex;gap:6px;margin-bottom:14px;border-bottom:1px solid var(--bd)}
+.tab{background:transparent;color:var(--mut);border:0;border-bottom:3px solid transparent;border-radius:0;padding:8px 14px;font:inherit;cursor:pointer}
+.tab.on{color:var(--ac);border-bottom-color:var(--ac);font-weight:600}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:14px}
+h2{font-size:14px;margin:0 0 8px}
+textarea{width:100%;box-sizing:border-box;min-height:130px;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:8px;padding:10px;font:13px/1.5 ui-monospace,Consolas,monospace;resize:vertical}
+#out{min-height:190px;font:15px/1.7 "Noto Sans TC","Microsoft JhengHei",sans-serif}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+button,label.btn{background:var(--ac);color:var(--acfg);border:0;border-radius:8px;padding:8px 14px;font:inherit;cursor:pointer}
+button.g,label.btn{background:transparent;color:var(--fg);border:1px solid var(--bd)}
+label.chk{color:var(--mut);font-size:13px}
+#msg,#m1{color:var(--mut);font-size:13px}
+.sc{overflow-x:auto}
+table{border-collapse:collapse;min-width:100%;font-size:13px;white-space:nowrap}
+th,td{border:1px solid var(--bd);padding:5px 8px;text-align:center}
+th{background:var(--hd)}td.r{color:#d33}td:focus{outline:2px solid var(--ac)}
+td.ref{color:var(--mut);text-align:left;white-space:normal;min-width:260px}
+td.x{border:0;padding:0 0 0 6px}td.x button{padding:2px 8px}
+table.fee td:first-child{white-space:nowrap}
+table.fee td[contenteditable]{text-align:left;font-family:ui-monospace,Consolas,monospace}
+table.fee td.ro{text-align:left;color:var(--mut);font-family:ui-monospace,Consolas,monospace}
+table.fee td.tr,table.fee th.tr{color:var(--mut);text-align:right;background:var(--hd)}
+table.fee tr.tot td{font-weight:600}
+.fm{font-size:13px}.fm.bad{color:#d33}.fm.ok{color:#1a7f37}
+.card.drop{border:1px dashed var(--ac);background:var(--hd)}
+</style>
+</head>
+<body>
+<main>
+<h1>水費異常處理工具</h1>
+<div class="tabs">
+<button class="tab on" data-t="t1">異常報表處理</button>
+<button class="tab" data-t="t2">差額解釋產出</button>
+<button class="tab" data-t="t3">手續費明細（WA2900）</button>
+</div>
+
+<section id="t1">
+<div class="card" id="drop1">
+<h2>① 匯入 PDF（可一次選多個，或直接把 PDF 拖曳到這個區塊）</h2>
+<p class="s">支援兩種報表：WBZF3650「代收行庫回送錯誤資料表」、WBZF3280「代收回送同批重複資料表」。兩種報表各有固定版型；3280 只取「銷帳檔＝無」的那一列。PDF 只在您的瀏覽器內讀取，不會上傳。</p>
+<div class="row">
+<label class="btn">選擇 PDF 檔<input id="pdf" type="file" accept=".pdf,.PDF" multiple hidden></label>
+<button class="g" id="p1clr">清除全部</button>
+<span id="m1"></span>
+</div>
+</div>
+<div class="card">
+<h2>② 產出表格（儲存格可直接修改，× 可刪除該列）</h2>
+<div class="sc"><table id="tb"><thead><tr>
+<th>序號</th><th>單位</th><th>水號</th><th>收費月份</th><th>金額</th><th>狀況</th><th>行庫</th><th>扣帳日期</th><th>配合 異常處理方式</th><th>五日報列帳(入款)位置</th><th>資訊處提供【載具】</th><th>來源說明（不複製）</th><th></th>
+</tr></thead><tbody></tbody></table></div>
+<div class="row"><button id="p1copy">複製表格（可貼到 Excel）</button>
+<label class="chk"><input type="checkbox" id="hdr"> 含標題列</label></div>
+</div>
+</section>
+
+<section id="t2" hidden>
+<div class="card">
+<h2>① 匯入資料</h2>
+<textarea id="in" placeholder="在這裡貼上 Excel 複製的內容（含標題列或不含皆可）"></textarea>
+<div class="row">
+<label class="btn">選擇 Excel 檔<input id="file" type="file" accept=".xlsx,.xls,.csv" hidden></label>
+<button class="g" id="clr">清除</button>
+<label class="chk"><input type="checkbox" id="gap"> 每筆之間空一行</label>
+<span id="msg"></span>
+</div>
+</div>
+
+<div class="card">
+<h2>② 輸出文字（可直接修改）</h2>
+<textarea id="out"></textarea>
+<div class="row"><button id="copy">複製文字</button></div>
+</div>
+</section>
+<section id="t3" hidden>
+<div class="card" id="drop3">
+<h2>① 匯入 WA2900 PDF（代收、代繳各一份，順序不拘；可直接拖曳到這個區塊）</h2>
+<p class="s">儲存格內容就是公式文字（如 =12110+125947+718+636），按「複製」後貼進 Excel 會是公式。若貼上後看到的是「=…」文字而不是數字，是目的儲存格格式被設成「文字」，改成「通用格式」再貼即可。PDF 只在瀏覽器內讀取，不會上傳。</p>
+<div class="row">
+<label class="btn">選擇 PDF 檔<input id="feePdf" type="file" accept=".pdf,.PDF" multiple hidden></label>
+<button class="g" id="feeClr">清除</button>
+<span id="feeMsg" class="fm"></span>
+</div>
+</div>
+<div id="feeOut"></div>
+</section>
+</main>
+
+<script src="libs/xlsx.full.min.js"></script>
+<script src="libs/pdf.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
+  ['t1','t2','t3'].forEach(id=>$(id).hidden=b.dataset.t!==id);
+});
+
+/* ===== 頁簽一：異常報表處理 ===== */
+try{pdfjsLib.GlobalWorkerOptions.workerSrc='libs/pdf.worker.min.js'}catch(e){}
+const D='\\d{3}/\\d{2}/\\d{2}',W='[0-9A-Z]{10,12}';
+const POS='12.匯款繳費入區處';
+const num=s=>parseFloat(String(s).replace(/,/g,''));
+
+async function pdfText(buf){
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;let all='';
+  for(let p=1;p<=pdf.numPages;p++){
+    const pg=await pdf.getPage(p),vp=pg.getViewport({scale:1});
+    const tc=await pg.getTextContent();
+    // 用 viewport 座標（已含頁面旋轉）：y 由上往下、x 由左往右
+    const its=tc.items.filter(t=>t.str.trim()).map(t=>{const m=pdfjsLib.Util.transform(vp.transform,t.transform);return {s:t.str,x:m[4],y:m[5]}}).sort((a,b)=>a.y-b.y);
+    const ls=[];
+    for(const it of its){const l=ls.find(l=>Math.abs(l.y-it.y)<=3);l?l.a.push(it):ls.push({y:it.y,a:[it]})}
+    all+=ls.sort((a,b)=>a.y-b.y).map(l=>l.a.sort((a,b)=>a.x-b.x).map(i=>i.s).join(' ')).join(' ')+' ';
+  }
+  return all.replace(/\s+/g,' ');
+}
+/* 版型 A：WBZF3650 代收行庫回送錯誤資料表
+   欄位：序號 收費年月 水號 行庫代號-名稱 作業日期 扣帳日期1 扣帳日期2 工作區 應繳金額 扣帳結果 (數字) 處理狀況 [載具號碼] 銷帳檔 … */
+function carrier(s){const m=s.match(/^\s*[^\s\d\/]+(?: (?![YN] )(\S+))? [YN] /);return m&&m[1]?m[1]:''}
+function parse3650(t){
+  const re=new RegExp(`(\\d+) (\\d{3}/\\d{2}) (${W}) ([A-Z0-9]{2})-(\\S+) (${D}) (${D}) (${D}) (\\d{4}) ([\\d,]+) (\\d+) (\\d+) `,'g');
+  const ms=[...t.matchAll(re)];
+  return ms.map((m,i)=>{
+    const rest=t.slice(m.index+m[0].length,i+1<ms.length?ms[i+1].index:undefined);
+    const st=(rest.match(/^\s*([^\s\d\/]+)/)||[])[1]||'';
+    return {no:m[3],amt:num(m[10]),bank:m[4]+'1',date:m[8],car:carrier(rest),ref:`3650：${st}（${m[5]}，應繳 ${m[10]}）`};
+  });
+}
+/* 版型 B：WBZF3280 代收回送同批重複資料表
+   欄位：序號 收費年月 水號 行庫代號 行庫名稱 作業日期 扣帳日期1 扣帳日期2 工作區 應繳金額 扣帳結果 [載具號碼] 銷帳檔(有/無) 異動日期 異動人員
+   規則：同一水號會有兩列，只取「銷帳檔＝無」那一列 */
+function parse3280(t){
+  const re=new RegExp(`(\\d+) (\\d{3}/\\d{2}) (${W}) ([A-Z0-9]{2}) (\\S+) (${D}) (${D}) (${D}) (\\d{4}) ([\\d,]+) (\\d+) (?:(\\S+) )?(有|無) `,'g');
+  return [...t.matchAll(re)].filter(m=>m[13]==='無').map(m=>({no:m[3],amt:num(m[10]),bank:m[4]+'1',date:m[8],
+    car:m[12]||'',ref:`3280：同批重複，銷帳＝無（${m[5]}，應繳 ${m[10]}）`}));
+}
+function addRow(r){
+  const tr=document.createElement('tr');
+  const v=['','',r.no,'',r.amt,'',r.bank,r.date,'',POS,r.car];
+  v.forEach((x,i)=>{const td=document.createElement('td');td.textContent=x;td.contentEditable='true';if([2,4,6,7,8,9,10].includes(i))td.className='r';tr.appendChild(td)});
+  const ref=document.createElement('td');ref.className='ref';ref.textContent=r.ref;tr.appendChild(ref);
+  const x=document.createElement('td');x.className='x';x.innerHTML='<button class="g">×</button>';x.firstChild.onclick=()=>{tr.remove();cnt()};tr.appendChild(x);
+  $('tb').tBodies[0].appendChild(tr);
+}
+const cnt=()=>$('m1').textContent=`目前 ${$('tb').tBodies[0].rows.length} 列`;
+$('pdf').addEventListener('change',async e=>{
+  const files=[...e.target.files];e.target.value='';
+  for(const f of files){
+    $('m1').textContent='讀取中：'+f.name;
+    try{
+      const t=await pdfText(await f.arrayBuffer());
+      let rs=[];
+      if(t.includes('WBZF3650')||t.includes('回送錯誤'))rs=parse3650(t);
+      else if(t.includes('WBZF3280')||t.includes('同批重複'))rs=parse3280(t);
+      else {$('m1').textContent=f.name+'：無法辨識報表格式';continue}
+      rs.forEach(addRow);
+      if(!rs.length){$('m1').textContent=f.name+'：沒有解析到資料列';return}
+    }catch(err){$('m1').textContent='讀取失敗：'+err.message;return}
+  }
+  cnt();
+});
+$('p1clr').onclick=()=>{$('tb').tBodies[0].innerHTML='';$('m1').textContent=''};
+$('p1copy').onclick=async()=>{
+  const L=[];
+  if($('hdr').checked)L.push([...$('tb').tHead.rows[0].cells].slice(0,11).map(c=>c.textContent).join('\t'));
+  for(const tr of $('tb').tBodies[0].rows)L.push([...tr.cells].slice(0,11).map(c=>c.textContent.trim()).join('\t'));
+  const s=L.join('\n');
+  try{await navigator.clipboard.writeText(s)}catch(e){const ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}
+  $('m1').textContent='已複製 '+$('tb').tBodies[0].rows.length+' 列';
+};
+
+/* ===== 頁簽二：差額解釋產出 ===== */
+const COLS={unit:'單位',no:'水號',month:'收費月份',amt:'金額',stat:'狀況',bank:'行庫',date:'扣帳日期'};
+const DEFAULT_IDX={unit:1,no:2,month:3,amt:4,stat:5,bank:6,date:7}; // 無標題列時，假設含「序號」欄
+
+function parseTSV(t){
+  const rows=[];let r=[],c='',q=false;
+  for(let i=0;i<t.length;i++){const ch=t[i];
+    if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}
+    else if(ch=='"')q=true;
+    else if(ch=='\t'){r.push(c);c=''}
+    else if(ch=='\n'){r.push(c);rows.push(r);r=[];c=''}
+    else if(ch!='\r')c+=ch}
+  if(c||r.length){r.push(c);rows.push(r)}
+  return rows;
+}
+const clean=v=>String(v==null?'':v).replace(/\s+/g,' ').trim();
+
+function build(rows){
+  let idx=null,start=0;
+  for(let i=0;i<rows.length;i++){
+    const h=rows[i].map(clean);
+    if(h.includes('水號')&&h.some(x=>x.includes('金額'))){
+      idx={};
+      for(const k in COLS){const j=h.findIndex(x=>x.replace(/\s/g,'').includes(COLS[k]));if(j>=0)idx[k]=j}
+      start=i+1;break;
+    }
+  }
+  if(!idx){
+    idx={...DEFAULT_IDX};
+    // 若第一欄不是序號（第二欄才是單位），則整體左移一欄
+    const f=rows.find(r=>r.some(x=>clean(x)));
+    if(f&&/^[^\d]/.test(clean(f[0]))&&clean(f[0])&&!/^\d+$/.test(clean(f[0]))){for(const k in idx)idx[k]--}
+  }
+  const lines=[];let total=0;
+  for(const r of rows.slice(start)){
+    const amt=parseFloat(clean(r[idx.amt]).replace(/[,$]/g,''));
+    const no=clean(r[idx.no]);
+    if(!no||isNaN(amt))continue;
+    const m=clean(r[idx.date]).match(/(\d+)[\/\-.](\d+)[\/\-.](\d+)/);
+    const d=m?`${+m[2]}/${+m[3]}`:clean(r[idx.date]);
+    const bank=clean(r[idx.bank]),stat=clean(r[idx.stat]);
+    lines.push(`${d} ${bank} 多匯 $${amt}(${no} ${stat})`);
+    total+=amt;
+  }
+  if(!lines.length)return '';
+  return lines.join($('gap').checked?'\n\n':'\n')+`\n\n合計: $${total}`;
+}
+
+function run(rows){
+  const o=build(rows);
+  $('out').value=o;
+  $('msg').textContent=o?`已產生 ${o.split('\n').filter(l=>l.includes('多匯')).length} 筆`:'找不到可用資料，請確認欄位（水號、金額…）';
+}
+$('in').addEventListener('input',()=>run(parseTSV($('in').value)));
+$('gap').addEventListener('change',()=>{
+  if($('in').value)run(parseTSV($('in').value));else if(window._rows)run(window._rows);
+});
+$('file').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const fr=new FileReader();
+  fr.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      window._rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
+      $('in').value='';run(window._rows);
+    }catch(err){$('msg').textContent='讀取失敗：'+err.message}
+  };
+  fr.readAsArrayBuffer(f);e.target.value='';
+});
+$('clr').onclick=()=>{$('in').value='';$('out').value='';$('msg').textContent='';window._rows=null};
+$('copy').onclick=async()=>{
+  try{await navigator.clipboard.writeText($('out').value)}catch(e){$('out').select();document.execCommand('copy')}
+  $('msg').textContent='已複製';
+};
+
+/* ===== 頁簽三：手續費明細（WA2900 代收／代繳）===== */
+// fee-core
+const FEE_UNITS=[["11","基隆服務所"],["1D","汐止營運所"],["1B","淡水營運所"],["1C","瑞芳營運所"],["1E","萬金營運所"],["1F","文山營運所"],["1G","貢雙營運所"]];
+async function feeLines(buf){
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise,lines=[];
+  for(let p=1;p<=pdf.numPages;p++){
+    const tc=await(await pdf.getPage(p)).getTextContent(),rows=[];
+    for(const it of tc.items){
+      if(!it.str.trim())continue;
+      const y=it.transform[5],x=it.transform[4];
+      let r=rows.find(r=>Math.abs(r.y-y)<3);
+      if(!r){r={y,items:[]};rows.push(r)}
+      r.items.push({x,s:it.str});
+    }
+    rows.sort((a,b)=>b.y-a.y);
+    for(const r of rows){r.items.sort((a,b)=>a.x-b.x);lines.push(r.items.map(i=>i.s).join(' ').replace(/\s+/g,' ').trim())}
+  }
+  return lines;
+}
+const feeInt=t=>t==='-'?0:parseInt(t.replace(/,/g,''),10);
+function feeAmounts(rest){
+  const t=rest.replace(/\(\s*[\d,\-]+\s*\)/g,' ').trim().split(/\s+/);
+  if(t.length!==6)throw new Error('無法解析這一列：'+rest);
+  const [s,f,tot,fee,remit,actual]=t.map(feeInt);
+  return {success:s,total:tot,fee,remit,actual};
+}
+function feeParse(lines){
+  const m=lines.join('').replace(/\s/g,'').match(/(代收|代繳)扣帳日期/);
+  if(!m)throw new Error('找不到「代收／代繳 扣帳日期」，這是 WA2900 報表嗎？');
+  const rows={};let total=null;
+  for(const l of lines){
+    let r=l.match(/^([0-9A-Z]{2})\s+(\S+)\s+(\d{2,3})\/(\d{1,2})\s+(.*)$/);
+    if(r){const d=feeAmounts(r[5]);d.ym=+r[3]*100+ +r[4];(rows[r[1]]=rows[r[1]]||[]).push(d);continue}
+    r=l.match(/^合\s*計\s+(.*)$/);
+    if(r)total=feeAmounts(r[1]);
+  }
+  for(const k in rows)rows[k].sort((a,b)=>a.ym-b.ym);
+  if(!Object.keys(rows).length)throw new Error('沒有讀到任何站所資料');
+  return {kind:m[1],rows,total};
+}
+// 0 省略；只有一筆就直接給數字；多筆給 =a+b+c
+function feeExpr(v){v=v.filter(x=>x);return v.length===0?'0':v.length===1?String(v[0]):'='+v.join('+')}
+function feeBuild(rows){
+  return FEE_UNITS.map(([code,name])=>{
+    const l=rows[code]||[];
+    return {name,succ:feeExpr(l.map(d=>d.success)),fee:feeExpr([...l.map(d=>d.fee),...l.map(d=>d.remit)])};
+  });
+}
+function feeReconcile(p){
+  const m=[];
+  for(const[c,l]of Object.entries(p.rows))for(const d of l)
+    if(d.success-d.fee-d.remit!==d.actual)m.push(c+' 的「成功−手續費−匯款」不等於實際入帳');
+  const known=FEE_UNITS.map(u=>u[0]);
+  for(const c of Object.keys(p.rows))if(!known.includes(c))m.push('站所代號 '+c+' 未設定，未列入表格');
+  if(p.total)for(const[k,n]of[['success','成功金額'],['fee','手續費'],['remit','匯款手續費']]){
+    const s=Object.values(p.rows).flat().reduce((a,d)=>a+d[k],0);
+    if(s!==p.total[k])m.push(n+'加總 '+s.toLocaleString()+' ≠ PDF 合計 '+p.total[k].toLocaleString());
+  }
+  return m;
+}
+const feeEval=s=>{const p=String(s).trim().replace(/^=/,'').split('+').map(x=>parseFloat(x.replace(/,/g,'')));return p.some(isNaN)?0:p.reduce((a,b)=>a+b,0)};
+function feeTSV(tbl,all,st){
+  const rows=[...tbl.tBodies[0].rows].filter(r=>!r.classList.contains('tot')),L=[];
+  rows.forEach((tr,i)=>{const r=st+i,b=tr.cells[1].textContent.trim(),c=tr.cells[2].textContent.trim();
+    L.push(all?[tr.cells[0].textContent.trim(),b,c,'=B'+r+'-C'+r].join('\t'):[b,c].join('\t'))});
+  if(all){const a=st,z=st+rows.length-1;
+    L.push(['合     計','=SUM(B'+a+':B'+z+')','=SUM(C'+a+':C'+z+')','=SUM(D'+a+':D'+z+')'].join('\t'))}
+  return L.join('\n');
+}
+// /fee-core
+
+const feeData={},feeFmt=n=>n.toLocaleString('en-US');
+function feeCalc(tbl){
+  let S=0,F=0;
+  const rows=[...tbl.tBodies[0].rows].filter(r=>!r.classList.contains('tot'));
+  for(const tr of rows){
+    const b=feeEval(tr.cells[1].textContent),c=feeEval(tr.cells[2].textContent);
+    S+=b;F+=c;
+    tr.cells[4].textContent=feeFmt(b);tr.cells[5].textContent=feeFmt(c);tr.cells[6].textContent=feeFmt(b-c);
+  }
+  const t=tbl.tBodies[0].querySelector('tr.tot');
+  t.cells[4].textContent=feeFmt(S);t.cells[5].textContent=feeFmt(F);t.cells[6].textContent=feeFmt(S-F);
+}
+function feeRender(){
+  let h='';
+  for(const[kind,def]of[['代收',3],['代繳',18]]){
+    const d=feeData[kind];if(!d)continue;
+    const last=def+d.cells.length-1;
+    h+='<div class="card"><h2>'+kind+'</h2><div class="sc"><table class="fee" data-k="'+kind+'"><thead><tr><th>所 別</th><th>成功金額</th><th>手續費(含匯費)</th><th>實際入帳金額</th><th class="tr">成功（試算）</th><th class="tr">手續費（試算）</th><th class="tr">入帳（試算）</th></tr></thead><tbody>';
+    d.cells.forEach((u,i)=>{h+='<tr><td>'+u.name+'</td><td contenteditable="true">'+u.succ+'</td><td contenteditable="true">'+u.fee+'</td><td class="ro">=B'+(def+i)+'-C'+(def+i)+'</td><td class="tr"></td><td class="tr"></td><td class="tr"></td></tr>'});
+    h+='<tr class="tot"><td>合 計</td><td class="ro">=SUM(B'+def+':B'+last+')</td><td class="ro">=SUM(C'+def+':C'+last+')</td><td class="ro">=SUM(D'+def+':D'+last+')</td><td class="tr"></td><td class="tr"></td><td class="tr"></td></tr></tbody></table></div>';
+    h+='<div class="fm '+(d.msgs.length?'bad':'ok')+'" style="margin-top:6px">'+(d.msgs.length?'⚠ '+d.msgs.join('；'):'✔ 與 PDF 合計列對帳一致')+'（'+d.file+'）</div>';
+    h+='<div class="row"><button data-k="'+kind+'" data-m="bc">複製 B:C 兩欄（貼到 B'+def+'）</button><button class="g" data-k="'+kind+'" data-m="all">複製整張表（含所別、實際入帳、合計）</button><label class="chk">整張表貼上起始列 <input type="number" min="1" value="'+def+'" id="feeSt'+kind+'" style="width:64px"></label></div></div>';
+  }
+  $('feeOut').innerHTML=h;
+  $('feeOut').querySelectorAll('table.fee').forEach(feeCalc);
+}
+$('feePdf').addEventListener('change',async e=>{
+  const files=[...e.target.files];e.target.value='';const errs=[];
+  for(const f of files){
+    $('feeMsg').textContent='讀取中：'+f.name;
+    try{
+      const p=feeParse(await feeLines(new Uint8Array(await f.arrayBuffer())));
+      feeData[p.kind]={cells:feeBuild(p.rows),msgs:feeReconcile(p),file:f.name};
+    }catch(err){errs.push(f.name+'：'+err.message)}
+  }
+  $('feeMsg').className='fm'+(errs.length?' bad':'');
+  $('feeMsg').textContent=errs.length?errs.join('；'):'已讀取：'+['代收','代繳'].filter(k=>feeData[k]).join('、');
+  feeRender();
+});
+$('feeOut').addEventListener('input',e=>{const t=e.target.closest('table.fee');if(t)feeCalc(t)});
+$('feeOut').addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const k=b.dataset.k,all=b.dataset.m==='all',st=+($('feeSt'+k).value)||1;
+  const s=feeTSV($('feeOut').querySelector('table[data-k="'+k+'"]'),all,st);
+  try{await navigator.clipboard.writeText(s)}catch(err){const ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}
+  const o=b.textContent;b.textContent='已複製 ✓';setTimeout(()=>b.textContent=o,1400);
+});
+$('feeClr').onclick=()=>{for(const k in feeData)delete feeData[k];$('feeOut').innerHTML='';$('feeMsg').textContent=''};
+
+/* ===== 拖曳上傳（頁簽一、三的 PDF）===== */
+function dropZone(el,input,pat){
+  ['dragenter','dragover'].forEach(ev=>el.addEventListener(ev,e=>{e.preventDefault();el.classList.add('drop')}));
+  el.addEventListener('dragleave',e=>{if(!el.contains(e.relatedTarget))el.classList.remove('drop')});
+  el.addEventListener('drop',e=>{
+    e.preventDefault();el.classList.remove('drop');
+    const dt=new DataTransfer();
+    [...e.dataTransfer.files].filter(f=>pat.test(f.name)).forEach(f=>dt.items.add(f));
+    if(!dt.files.length)return;
+    input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));
+  });
+}
+dropZone($('drop1'),$('pdf'),/\.pdf$/i);
+dropZone($('drop3'),$('feePdf'),/\.pdf$/i);
+// 沒拖到區塊時，避免瀏覽器直接把 PDF 開起來而離開工具
+['dragover','drop'].forEach(ev=>window.addEventListener(ev,e=>e.preventDefault()));
+</script>
+</body>
+</html>
