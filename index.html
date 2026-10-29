@@ -286,8 +286,8 @@ function feeAmounts(rest){
   return {success:s,total:tot,fee,remit,actual};
 }
 function feeParse(lines){
-  const m=lines.join('').replace(/\s/g,'').match(/(代收|代繳)扣帳日期/);
-  if(!m)throw new Error('找不到「代收／代繳 扣帳日期」，這是 WA2900 報表嗎？');
+  const m=lines.join('').replace(/\s/g,'').match(/(代收|代繳|全部)扣帳日期/);
+  if(!m)throw new Error('找不到「代收／代繳／全部 扣帳日期」，這是 WA2900 報表嗎？');
   const rows={};let total=null;
   for(const l of lines){
     let r=l.match(/^([0-9A-Z]{2})\s+(\S+)\s+(\d{2,3})\/(\d{1,2})\s+(.*)$/);
@@ -344,10 +344,11 @@ function feeCalc(tbl){
 }
 function feeRender(){
   let h='';
-  for(const[kind,def]of[['代收',3],['代繳',18]]){
+  for(const[kind,def]of[['代收',3],['代繳',18],['全部',3]]){
     const d=feeData[kind];if(!d)continue;
+    const label=kind==='全部'?'全部（NC）':kind;
     const last=def+d.cells.length-1;
-    h+='<div class="card"><h2>'+kind+'</h2><div class="sc"><table class="fee" data-k="'+kind+'"><thead><tr><th>所 別</th><th>成功金額</th><th>手續費(含匯費)</th><th>實際入帳金額</th><th class="tr">成功（試算）</th><th class="tr">手續費（試算）</th><th class="tr">入帳（試算）</th></tr></thead><tbody>';
+    h+='<div class="card"><h2>'+label+'</h2><div class="sc"><table class="fee" data-k="'+kind+'"><thead><tr><th>所 別</th><th>成功金額</th><th>手續費(含匯費)</th><th>實際入帳金額</th><th class="tr">成功（試算）</th><th class="tr">手續費（試算）</th><th class="tr">入帳（試算）</th></tr></thead><tbody>';
     d.cells.forEach((u,i)=>{h+='<tr><td>'+u.name+'</td><td contenteditable="true">'+u.succ+'</td><td contenteditable="true">'+u.fee+'</td><td class="ro">=B'+(def+i)+'-C'+(def+i)+'</td><td class="tr"></td><td class="tr"></td><td class="tr"></td></tr>'});
     h+='<tr class="tot"><td>合 計</td><td class="ro">=SUM(B'+def+':B'+last+')</td><td class="ro">=SUM(C'+def+':C'+last+')</td><td class="ro">=SUM(D'+def+':D'+last+')</td><td class="tr"></td><td class="tr"></td><td class="tr"></td></tr></tbody></table></div>';
     h+='<div class="fm '+(d.msgs.length?'bad':'ok')+'" style="margin-top:6px">'+(d.msgs.length?'⚠ '+d.msgs.join('；'):'✔ 與 PDF 合計列對帳一致')+'（'+d.file+'）</div>';
@@ -366,7 +367,7 @@ $('feePdf').addEventListener('change',async e=>{
     }catch(err){errs.push(f.name+'：'+err.message)}
   }
   $('feeMsg').className='fm'+(errs.length?' bad':'');
-  $('feeMsg').textContent=errs.length?errs.join('；'):'已讀取：'+['代收','代繳'].filter(k=>feeData[k]).join('、');
+  $('feeMsg').textContent=errs.length?errs.join('；'):'已讀取：'+['代收','代繳','全部'].filter(k=>feeData[k]).join('、');
   feeRender();
 });
 $('feeOut').addEventListener('input',e=>{const t=e.target.closest('table.fee');if(t)feeCalc(t)});
